@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * Listen for conversation directed at, or around, the bot.
+ *
+ * @param $data
+ *   The regular $data object prepared by the IRC library.
+ * @param $from_query
+ *   Boolean; whether this was a queried request.
+ */
+function bot_ooo_irc_msg_channel($data, $from_query = FALSE) {
+  $to = $from_query ? $data->nick : $data->channel;
+
+  // If the module isn't configured, just return.
+  if (!variable_get('bot_ooo_json_feed_url')) {
+    return;
+  }
+
+  // Look for ooo or ooo?
+  if (preg_match('/^ooo\?*$/i', trim($data->message)) && $ooo = bot_ooo_get()) {
+    // If we get a valid updated message, print it.
+    $t_args = array('@ooo' => implode(', ', $ooo));
+    $message = t('Out of the office today: @ooo', $t_args);
+    bot_message($to, $message);
+  }
+}
+
+/**
+ * Get an array of people who are out of the office.
+ */
+function bot_ooo_get() {
+  $url = variable_get('bot_ooo_json_feed_url', '');
+  $response = drupal_http_request($url);
+
+  if ($response->error || empty($response->data) || !$data = drupal_json_decode($response->data)) {
+    return;
+  }
+
+  $ooo = array();
+  foreach ($data as $person) {
+    if (isset($person['name']) && $person['name']) {
+      $ooo[] = $person['name'];
+    }
+  }
+
+  return $ooo;
+}

@@ -1,0 +1,5 @@
+name = Bot OOO
+description = Look up out of office
+dependencies[] = bot
+package = Bot
+core = 7.x
